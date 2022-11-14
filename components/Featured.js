@@ -1,4 +1,4 @@
-import Image from "next/image";
+import Image from "next/legacy/image";
 import styles from "../styles/Featured.module.css";
 import { useState } from "react";
 
@@ -26,7 +26,7 @@ const Featured = () => {
         style={{ left: 0 }}
         onClick={() => handleArrow("l")}
       >
-        <Image src="/img/arrowl.png" fill alt="" />
+        <Image src="/img/arrowl.png" layout="fill" objectFit="cover" alt="" />
       </div>
       <div
         className={styles.wrapper}
@@ -34,7 +34,7 @@ const Featured = () => {
       >
         {images.map((img, i) => (
           <div className={styles.imgContainer} key={i}>
-            <Image src={img} fill objectFit="cover" alt="" />
+            <Image src={img} layout="fill" objectFit="cover" alt="" />
           </div>
         ))}
       </div>
@@ -43,7 +43,7 @@ const Featured = () => {
         style={{ right: 0 }}
         onClick={() => handleArrow("r")}
       >
-        <Image src="/img/arrowr.png" fill alt="" />
+        <Image src="/img/arrowr.png" layout="fill" objectFit="cover" alt="" />
       </div>
     </div>
   );
