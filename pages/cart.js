@@ -1,11 +1,15 @@
 import Image from "next/image";
 import styles from "../styles/Cart.module.css";
 import { useSelector, useDispatch } from "react-redux";
-import { useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import axios from "axios";
 import { reset } from "../redux/cartSlice";
-
+import {
+  PayPalScriptProvider,
+  PayPalButtons,
+  usePayPalScriptReducer,
+} from "@paypal/react-paypal-js";
 const Featured = () => {
   const cart = useSelector((state) => state.cart);
   const [open, setOpen] = useState(false);
@@ -15,10 +19,10 @@ const Featured = () => {
   const style = { layout: "vertical" };
   const dispatch = useDispatch();
   const router = useRouter();
-  console.log(cart);
+
   const createOrder = async (data) => {
     try {
-      const res = await axios.post("http://localhost:3000/api/oders", data);
+      const res = await axios.post("http://localhost:3000/api/orders", data);
       if (res.status === 201) {
         dispatch(reset());
         router.push(`/orders/${res.data._id}`);
@@ -27,6 +31,64 @@ const Featured = () => {
       console.log(error);
     }
   };
+
+  // Custom component to wrap the PayPalButtons and handle currency changes
+  const ButtonWrapper = ({ currency, showSpinner }) => {
+    // usePayPalScriptReducer can be use only inside children of PayPalScriptProviders
+    // This is the main reason to wrap the PayPalButtons in a new component
+    const [{ options, isPending }, dispatch] = usePayPalScriptReducer();
+
+    useEffect(() => {
+      dispatch({
+        type: "resetOptions",
+        value: {
+          ...options,
+          currency: currency,
+        },
+      });
+    }, [currency, showSpinner]);
+
+    return (
+      <Fragment>
+        {showSpinner && isPending && <div className="spinner" />}
+        <PayPalButtons
+          style={style}
+          disabled={false}
+          forceReRender={[amount, currency, style]}
+          fundingSource={undefined}
+          createOrder={(data, actions) => {
+            return actions.order
+              .create({
+                purchase_units: [
+                  {
+                    amount: {
+                      currency_code: currency,
+                      value: amount,
+                    },
+                  },
+                ],
+              })
+              .then((orderId) => {
+                // Your code here after create the order
+                return orderId;
+              });
+          }}
+          onApprove={function (data, actions) {
+            return actions.order.capture().then(function (details) {
+              const shipping = details.purchase_units[0].shipping;
+              createOrder({
+                customer: shipping.name.full_name,
+                address: shipping.address.address_line_1,
+                total: cart.total,
+                method: 1,
+              });
+            });
+          }}
+        />
+      </Fragment>
+    );
+  };
+
   return (
     <div className={styles.container}>
       <div className={styles.left}>
@@ -85,7 +147,30 @@ const Featured = () => {
           <div className={styles.totalText}>
             <b className={styles.totalTextTitle}>Total: </b>${cart.total}
           </div>
-          <button className={styles.button}>checkout now!</button>
+          {open ? (
+            <div className={styles.paymentMethods}>
+              <button
+                className={styles.payButton}
+                onClick={() => setCash(true)}
+              >
+                Cash on delivery
+              </button>
+              <PayPalScriptProvider
+                options={{
+                  "client-id": "test",
+                  components: "buttons",
+                  currency: "USD",
+                  "disable-funding": "credit,card,p24,venmo",
+                }}
+              >
+                <ButtonWrapper currency={currency} showSpinner={false} />
+              </PayPalScriptProvider>
+            </div>
+          ) : (
+            <button className={styles.button} onClick={() => setOpen(true)}>
+              checkout now!
+            </button>
+          )}
         </div>
       </div>
     </div>
