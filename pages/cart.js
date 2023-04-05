@@ -4,13 +4,15 @@ import { useSelector, useDispatch } from "react-redux";
 import { Fragment, useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import axios from "axios";
+import OrderDetail from "../components/OrderDetail";
 import { reset } from "../redux/cartSlice";
 import {
   PayPalScriptProvider,
   PayPalButtons,
   usePayPalScriptReducer,
 } from "@paypal/react-paypal-js";
-const Featured = () => {
+
+const Cart = () => {
   const cart = useSelector((state) => state.cart);
   const [open, setOpen] = useState(false);
   const [cash, setCash] = useState(false);
@@ -22,7 +24,9 @@ const Featured = () => {
 
   const createOrder = async (data) => {
     try {
+      console.log(data);
       const res = await axios.post("http://localhost:3000/api/orders", data);
+      // console.log(res);
       if (res.status === 201) {
         dispatch(reset());
         router.push(`/orders/${res.data._id}`);
@@ -173,8 +177,9 @@ const Featured = () => {
           )}
         </div>
       </div>
+      {cash && <OrderDetail total={cart.total} createOrder={createOrder} />}
     </div>
   );
 };
 
-export default Featured;
+export default Cart;
